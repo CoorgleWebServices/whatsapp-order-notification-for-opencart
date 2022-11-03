@@ -1,0 +1,645 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+    <name>Whatsapp Marketing Notification</name>
+    <code>1000001</code>
+    <version>1.0</version>
+    <author>Coorgle Web Services</author>
+    <link>https://www.tamatay.com</link>
+
+    <file path="catalog/model/setting/module.php">       
+        <operation>
+            <search><![CDATA[public function getModule($module_id) {]]></search>
+            <add position="before"><![CDATA[
+                public function getModuleByCode($code) {
+                    $query = $this->db->query("SELECT * FROM " . DB_PREFIX . "module WHERE code = '" . $code . "'");
+                    
+                    if ($query->row) {
+                        return json_decode($query->row['setting'], true);
+                    } else {
+                        return array(); 
+                    }
+                }    
+                ]]></add>
+        </operation>
+    </file>
+	<file path="admin/model/setting/module.php">       
+        <operation>
+            <search><![CDATA[public function addModule($code, $data) {]]></search>
+            <add position="before"><![CDATA[
+                public function getModuleByCode($code) {
+                    $query = $this->db->query("SELECT * FROM " . DB_PREFIX . "module WHERE code = '" . $code . "'");
+                    
+                    if ($query->row) {
+                        return json_decode($query->row['setting'], true);
+                    } else {
+                        return array(); 
+                    }
+                }    
+                ]]></add>
+        </operation>
+    </file>
+	<file path="catalog/controller/account/register.php">       
+        <operation>
+            <search><![CDATA[if ((utf8_strlen($this->request->post['telephone']) < 3) || (utf8_strlen($this->request->post['telephone']) > 32)) {]]></search>
+            <add position="replace"><![CDATA[
+if (!is_numeric($this->request->post['telephone']) || (utf8_strlen($this->request->post['telephone']) < 8) || (utf8_strlen($this->request->post['telephone']) > 15)) {
+                ]]></add>
+        </operation>
+    </file>
+
+    
+
+    <file path="catalog/view/theme/*/template/account/register.twig">       
+        <operation>
+            <search><![CDATA[placeholder="{{ entry_telephone }}"]]></search>
+            <add position="replace"><![CDATA[placeholder="Telephone with Country code, Do not add + "]]></add>
+        </operation>
+    </file>
+
+    <file path="catalog/view/theme/*/template/checkout/guest.twig">       
+        <operation>
+            <search><![CDATA[placeholder="{{ entry_telephone }}"]]></search>
+            <add position="replace"><![CDATA[placeholder="Telephone with Country code, Do not add + "]]></add>
+        </operation>
+    </file>
+
+    <file path="catalog/view/theme/*/template/checkout/register.twig">       
+        <operation>
+            <search><![CDATA[placeholder="{{ entry_telephone }}"]]></search>
+            <add position="replace"><![CDATA[placeholder="Telephone with Country code, Do not add + "]]></add>
+        </operation>
+    </file>
+
+
+
+    <file path="catalog/language/*/account/register.php">       
+        <operation>
+            <search><![CDATA[Telephone must be between 3 and 32 characters!]]></search>
+            <add position="replace"><![CDATA[Telephone must be between 8 and 15 characters with Country code, Do not add +]]></add>
+        </operation>
+    </file>
+
+    <file path="catalog/language/*/checkout/checkout.php">       
+        <operation>
+            <search><![CDATA[Telephone must be between 3 and 32 characters!]]></search>
+            <add position="replace"><![CDATA[Telephone must be between 8 and 15 characters with Country code, Do not add +]]></add>
+        </operation>
+    </file>
+
+	
+	<file path="catalog/controller/checkout/guest.php">       
+        <operation>
+            <search><![CDATA[if ((utf8_strlen($this->request->post['telephone']) < 3) || (utf8_strlen($this->request->post['telephone']) > 32)) {]]></search>
+            <add position="replace"><![CDATA[
+if (!is_numeric($this->request->post['telephone']) || (utf8_strlen($this->request->post['telephone']) < 8) || (utf8_strlen($this->request->post['telephone']) > 15)) {
+                ]]></add>
+        </operation>
+    </file>
+	<file path="catalog/controller/checkout/register.php">       
+        <operation>
+            <search><![CDATA[if ((utf8_strlen($this->request->post['telephone']) < 3) || (utf8_strlen($this->request->post['telephone']) > 32)) {]]></search>
+            <add position="replace"><![CDATA[
+if (!is_numeric($this->request->post['telephone']) || (utf8_strlen($this->request->post['telephone']) < 8) || (utf8_strlen($this->request->post['telephone']) > 15)) {
+                ]]></add>
+        </operation>
+    </file>
+    <file path="catalog/model/account/customer.php">       
+        <operation>
+            <search><![CDATA[return $customer_id;]]></search>
+            <add position="before"><![CDATA[               
+                $this->load->model('setting/module');
+		
+                $sms_info = $this->model_setting_module->getModuleByCode('tamatay');
+				
+				if(isset($sms_info) && !empty($sms_info) && isset($sms_info['status']) && !empty($sms_info['status'])){
+			        $customer_name = $data['firstname'] . ' ' . $data['lastname'];
+			        $store_name = $this->config->get('config_name');
+					$language_id       = $this->config->get('config_language_id');
+			        $original       = array("{#CustomerName#}","{#SiteName#}","{#CustomerName#}");
+			        $replace        = array($customer_name, $store_name,$data['firstname']);                
+
+			       	$this->load->model('extension/module/tamatay');
+					
+
+			        $sms_data['username'] = $sms_info['api_username'];
+			        $sms_data['password'] = $sms_info['api_password'];
+			        $sms_data['senderid'] = $sms_info['api_senderid'];
+
+					//admin sms
+					if(isset($sms_info['admin_register']) && !empty($sms_info['admin_register'])){
+						$telephone = $sms_info['owner_telephone'];
+					    $message = str_replace($original, $replace, $sms_info['admin_register_text']);
+					    $sms_data['to'] = $this->model_extension_module_tamatay->format_number($telephone);
+					    $sms_data['message'] = html_entity_decode($message, ENT_QUOTES, 'UTF-8');
+					    $response = $this->model_extension_module_tamatay->send_sms($sms_data);
+
+						$dlr_data['customer_id'] = $customer_id;
+						$dlr_data['customer_name'] = $customer_name;
+						$dlr_data['mobile'] = $sms_data['to'];
+						$dlr_data['msg_id'] = isset($response[1]) ? $response[1] : null;
+						$dlr_data['status'] = $response[0];
+						$dlr_data['message'] = $sms_data['message'];
+						$this->model_extension_module_tamatay->insert_dlr($dlr_data);
+					}
+
+			        //customer sms
+			        if(isset($sms_info['customer_register']) && !empty($sms_info['customer_register'])){
+						$message = str_replace($original, $replace, $sms_info['customer_register_text'][$language_id]);
+						$sms_data['to'] = $this->model_extension_module_tamatay->format_number($data['telephone']);
+						$sms_data['message'] = html_entity_decode($message, ENT_QUOTES, 'UTF-8');
+						$response = $this->model_extension_module_tamatay->send_sms($sms_data);
+
+						$dlr_data['customer_id'] = $customer_id;
+						$dlr_data['customer_name'] = $customer_name;
+						$dlr_data['mobile'] = $sms_data['to'];
+						$dlr_data['msg_id'] = isset($response[1]) ? $response[1] : null;
+						$dlr_data['status'] = $response[0];
+						$dlr_data['message'] = $sms_data['message'];
+
+						$this->model_extension_module_tamatay->insert_dlr($dlr_data);
+			        }		       
+		     
+				}//EO: if sms info: tamatay extension installed
+                ]]></add>
+        </operation>
+    </file>
+	 <file path="catalog/controller/checkout/success.php"> 
+        <operation>
+            <search><![CDATA[$this->cart->clear();]]></search>
+            <add position="after"><![CDATA[ 
+                //ADDED
+				$this->load->model('setting/module');
+		
+                $sms_info = $this->model_setting_module->getModuleByCode('tamatay');
+				if(isset($sms_info) && !empty($sms_info) && isset($sms_info['status']) && !empty($sms_info['status'])){
+					$this->load->model('checkout/order');
+					$order_id = $this->session->data['order_id'];
+					$order_info = $this->model_checkout_order->getOrder($order_id);
+
+					if ($order_info) {					
+						$this->load->model('account/customer');						
+						$cart_total = $this->currency->format($order_info['total'], $order_info['currency_code'], $order_info['currency_value']);					
+					
+						$store_name = html_entity_decode($order_info['store_name'], ENT_QUOTES, 'UTF-8');
+						$language_id        = $this->config->get('config_language_id');
+						$status = $order_info['order_status'];                
+						$customer_name = $order_info['payment_firstname'].' '.$order_info['payment_lastname'];
+						$customer_id   = $order_info['customer_id'];
+
+						$original       = array("{#OrderID#}","{#CartTotal#}","{#SiteName#}","{#OrderID#}","{#Status#}","{#CustomerName#}");
+						$replace        = array($order_id, $cart_total, $store_name, $order_id, $status,$customer_name); 
+
+						$this->load->model('extension/module/tamatay');    
+					
+					
+						$sms_data['username'] = $sms_info['api_username'];
+						$sms_data['password'] = $sms_info['api_password'];
+						$sms_data['senderid'] = $sms_info['api_senderid'];
+
+						//admin sms
+						if(isset($sms_info['admin_place_order']) && !empty($sms_info['admin_place_order'])){
+							$telephone = $sms_info['owner_telephone'];
+							$message = str_replace($original, $replace, $sms_info['admin_place_order_text']);
+							$sms_data['to'] = $this->model_extension_module_tamatay->format_number($telephone);
+							$sms_data['message'] = html_entity_decode($message, ENT_QUOTES, 'UTF-8');
+							
+							$response = $this->model_extension_module_tamatay->send_sms($sms_data);
+
+							$dlr_data['customer_id'] = $customer_id;
+							$dlr_data['customer_name'] = $customer_name;
+							$dlr_data['mobile'] = $sms_data['to'];
+							$dlr_data['msg_id'] = isset($response[1]) ? $response[1] : null;
+							$dlr_data['status'] = $response[0];
+							$dlr_data['message'] = $sms_data['message'];
+						
+						
+							$this->model_extension_module_tamatay->insert_dlr($dlr_data);				
+						}
+
+						//customer sms   
+						if(isset($sms_info['customer_place_order']) && !empty($sms_info['customer_place_order'])){             
+							$telephone = $order_info['telephone'];
+							$message = str_replace($original, $replace, $sms_info['customer_place_order_text'][$language_id]);
+							$sms_data['to'] = $this->model_extension_module_tamatay->format_number($telephone);
+							$sms_data['message'] = html_entity_decode($message, ENT_QUOTES, 'UTF-8');
+							$response = $this->model_extension_module_tamatay->send_sms($sms_data);
+
+							$dlr_data['customer_id'] = $customer_id;
+							$dlr_data['customer_name'] = $customer_name;
+							$dlr_data['mobile'] = $sms_data['to'];
+							$dlr_data['msg_id'] = isset($response[1]) ? $response[1] : null;
+							$dlr_data['status'] = $response[0];
+							$dlr_data['message'] = $sms_data['message'];
+
+							$this->model_extension_module_tamatay->insert_dlr($dlr_data);
+						}	
+					}//Eo: if order info
+				}//EO: if sms info: tamatay extension installed
+				
+				
+                //ADDED
+            ]]></add>
+        </operation>
+	</file>
+	
+	<file path="catalog/controller/api/order.php">       
+        <operation>
+            <search><![CDATA[$this->model_checkout_order->addOrderHistory($json['order_id'], $order_status_id);]]></search>
+            <add position="before"><![CDATA[    
+                //ADDED
+				$this->load->model('setting/module');
+		
+                $sms_info = $this->model_setting_module->getModuleByCode('tamatay');
+				if(isset($sms_info) && !empty($sms_info) && isset($sms_info['status']) && !empty($sms_info['status'])){
+					$this->load->model('checkout/order');
+					$order_id = $json['order_id'];
+					$order_info = $this->model_checkout_order->getOrder($order_id);
+					if ($order_info) {
+						$cart_total = $this->currency->format($order_info['total'], $order_info['currency_code'], $order_info['currency_value']);					
+					
+						$store_name = html_entity_decode($order_info['store_name'], ENT_QUOTES, 'UTF-8');
+						$language_id        = $this->config->get('config_language_id');
+						$status = $order_info['order_status'];                
+						$customer_name = $order_info['firstname'].' '.$order_info['lastname'];
+						$customer_id   = $order_info['customer_id'];
+
+						$original       = array("{#OrderID#}","{#CartTotal#}","{#SiteName#}","{#OrderID#}","{#Status#}","{#CustomerName#}");
+						$replace        = array($order_id, $cart_total, $store_name, $order_id, $status,$customer_name); 
+
+						$this->load->model('extension/module/tamatay');    
+					
+					
+						$sms_data['username'] = $sms_info['api_username'];
+						$sms_data['password'] = $sms_info['api_password'];
+						$sms_data['senderid'] = $sms_info['api_senderid'];					
+
+						//customer sms   
+						if(isset($sms_info['customer_place_order']) && !empty($sms_info['customer_place_order'])){             
+							$telephone = $order_info['telephone'];
+							$message = str_replace($original, $replace, $sms_info['customer_place_order_text'][$language_id]);
+							$sms_data['to'] = $this->model_extension_module_tamatay->format_number($telephone);
+							$sms_data['message'] = html_entity_decode($message, ENT_QUOTES, 'UTF-8');
+							$response = $this->model_extension_module_tamatay->send_sms($sms_data);
+
+							$dlr_data['customer_id'] = $customer_id;
+							$dlr_data['customer_name'] = $customer_name;
+							$dlr_data['mobile'] = $sms_data['to'];
+							$dlr_data['msg_id'] = isset($response[1]) ? $response[1] : null;
+							$dlr_data['status'] = $response[0];
+							$dlr_data['message'] = $sms_data['message'];
+
+							$this->model_extension_module_tamatay->insert_dlr($dlr_data);
+						}	
+					}//Eo: if order info
+				}//EO: if sms info: tamatay extension installed				
+                //ADDED
+			 ]]></add>
+		</operation> 
+		<operation>
+            <search><![CDATA[$this->model_checkout_order->editOrder($order_id, $order_data);]]></search>
+            <add position="before"><![CDATA[    
+                //ADDED
+				$order_query = $this->db->query("SELECT o.order_status_id FROM `" . DB_PREFIX . "order` o WHERE o.order_id = '".(int)$order_id."'");
+				if ($order_query->num_rows) {
+					$old_order_status_id = $order_query->row['order_status_id'];
+				}else{
+					$old_order_status_id = $this->config->get('config_order_status_id');
+				}
+			 ]]></add>
+		</operation>		
+			
+		<operation>
+            <search><![CDATA[$this->model_checkout_order->addOrderHistory($order_id, $order_status_id);]]></search>
+            <add position="before"><![CDATA[    
+                //ADDED
+				$this->load->model('setting/module');				
+                $sms_info = $this->model_setting_module->getModuleByCode('tamatay');
+				if(isset($sms_info) && !empty($sms_info) && isset($sms_info['status']) && !empty($sms_info['status'])
+				&& (isset($sms_info['order_status_change']) && !empty($sms_info['order_status_change']) && isset($sms_info['order_status']) && is_array($sms_info['order_status']) && in_array($order_status_id, $sms_info['order_status']))
+				){									
+					$order_info = $this->model_checkout_order->getOrder($order_id);
+					
+					
+					if ($order_info && $old_order_status_id != $order_status_id) {				
+						$cart_total = $this->currency->format($order_info['total'], $order_info['currency_code'], $order_info['currency_value']);					
+					
+						$order_status_query = $this->db->query("SELECT os.name FROM `" . DB_PREFIX . "order_status` os WHERE os.order_status_id = '".(int)$order_status_id."'");
+						if ($order_status_query->num_rows) {
+							$order_status = $order_status_query->row['name'];
+						}else{
+							$order_status = $order_info['order_status'];   
+						}
+						
+						$store_name = html_entity_decode($order_info['store_name'], ENT_QUOTES, 'UTF-8');
+						$language_id        = $this->config->get('config_language_id');
+						$status = $order_status;                
+						$customer_name = $order_info['firstname'].' '.$order_info['lastname'];
+						$customer_id   = $order_info['customer_id'];
+
+						$original       = array("{#OrderID#}","{#CartTotal#}","{#SiteName#}","{#OrderID#}","{#Status#}","{#CustomerName#}");
+						$replace        = array($order_id, $cart_total, $store_name, $order_id, $status,$customer_name); 
+
+						$this->load->model('extension/module/tamatay');    
+					
+					
+						$sms_data['username'] = $sms_info['api_username'];
+						$sms_data['password'] = $sms_info['api_password'];
+						$sms_data['senderid'] = $sms_info['api_senderid'];	
+
+						$telephone = $order_info['telephone'];
+						$message = str_replace($original, $replace, $sms_info['order_status_change_text'][$language_id]);
+						$sms_data['to'] = $this->model_extension_module_tamatay->format_number($telephone);
+						$sms_data['message'] = html_entity_decode($message, ENT_QUOTES, 'UTF-8');
+						$response = $this->model_extension_module_tamatay->send_sms($sms_data);
+
+						$dlr_data['customer_id'] = $customer_id;
+						$dlr_data['customer_name'] = $customer_name;
+						$dlr_data['mobile'] = $sms_data['to'];
+						$dlr_data['msg_id'] = isset($response[1]) ? $response[1] : null;
+						$dlr_data['status'] = $response[0];
+						$dlr_data['message'] = $sms_data['message'];
+
+						$this->model_extension_module_tamatay->insert_dlr($dlr_data);
+							
+					}//Eo: if order info
+				}//EO: if sms info: tamatay extension installed				
+                //ADDED
+			 ]]></add>
+		</operation>
+		<operation>
+            <search><![CDATA[$this->model_checkout_order->addOrderHistory($order_id, $this->request->post['order_status_id'], $this->request->post['comment'], $this->request->post['notify'], $this->request->post['override']);]]></search>
+            <add position="before"><![CDATA[    
+                //ADDED
+				$this->load->model('setting/module');				
+                $sms_info = $this->model_setting_module->getModuleByCode('tamatay');
+				$order_status_id = $this->request->post['order_status_id'];
+				
+				if(isset($sms_info) && !empty($sms_info) && isset($sms_info['status']) && !empty($sms_info['status'])
+				&& (isset($sms_info['order_status_change']) && !empty($sms_info['order_status_change']) && isset($sms_info['order_status']) && is_array($sms_info['order_status']) && in_array($order_status_id, $sms_info['order_status']))
+				){					
+					if ($order_status_id != $order_info['order_status_id']) {
+					
+						$order_status_query = $this->db->query("SELECT os.name FROM `" . DB_PREFIX . "order_status` os WHERE os.order_status_id = '".(int)$order_status_id."'");
+						if ($order_status_query->num_rows) {
+							$order_status = $order_status_query->row['name'];
+						}else{
+							$order_status = $order_info['order_status'];   
+						}
+					
+						$cart_total = $this->currency->format($order_info['total'], $order_info['currency_code'], $order_info['currency_value']);					
+					
+						$store_name = html_entity_decode($order_info['store_name'], ENT_QUOTES, 'UTF-8');
+						$language_id        = $this->config->get('config_language_id');
+						$status = $order_status;                
+						$customer_name = $order_info['firstname'].' '.$order_info['lastname'];
+						$customer_id   = $order_info['customer_id'];
+
+						$original       = array("{#OrderID#}","{#CartTotal#}","{#SiteName#}","{#OrderID#}","{#Status#}","{#CustomerName#}");
+						$replace        = array($order_id, $cart_total, $store_name, $order_id, $status,$customer_name); 
+
+						$this->load->model('extension/module/tamatay');    
+					
+					
+						$sms_data['username'] = $sms_info['api_username'];
+						$sms_data['password'] = $sms_info['api_password'];
+						$sms_data['senderid'] = $sms_info['api_senderid'];					
+
+						//customer sms   						
+						$telephone = $order_info['telephone'];
+						$message = str_replace($original, $replace, $sms_info['order_status_change_text'][$language_id]);
+						$sms_data['to'] = $this->model_extension_module_tamatay->format_number($telephone);
+						$sms_data['message'] = html_entity_decode($message, ENT_QUOTES, 'UTF-8');
+						$response = $this->model_extension_module_tamatay->send_sms($sms_data);
+
+						$dlr_data['customer_id'] = $customer_id;
+						$dlr_data['customer_name'] = $customer_name;
+						$dlr_data['mobile'] = $sms_data['to'];
+						$dlr_data['msg_id'] = isset($response[1]) ? $response[1] : null;
+						$dlr_data['status'] = $response[0];
+						$dlr_data['message'] = $sms_data['message'];
+
+						$this->model_extension_module_tamatay->insert_dlr($dlr_data);
+							
+					}//Eo: if order info
+				}//EO: if sms info: tamatay extension installed				
+                //ADDED
+			 ]]></add>
+		</operation>
+	</file>    
+
+     <file path="admin/language/*/common/column_left.php" error="log">
+		<operation>
+			<search><![CDATA[$_['text_reports']              = 'Reports';]]></search>
+			<add position="after"><![CDATA[			
+			$_['sms_report_text']                      = 'Tamatay Notification Report';
+			]]></add>
+		</operation>
+	</file>
+
+     <file path="admin/controller/common/column_left.php">       
+        <operation>
+            <search><![CDATA[if ($this->user->hasPermission('access', 'extension/module/tamatayreports')) {]]></search>
+            <add position="before"><![CDATA[
+			if ($this->user->hasPermission('access', 'extension/module/tamatayreports')) {
+				$report[] = array(
+					'name'	   => $this->language->get('sms_report_text'),
+					'href'     => $this->url->link('extension/module/tamatayreports', 'user_token=' . $this->session->data['user_token'], true),
+					'children' => array()		
+				);	
+			}
+                ]]></add>
+        </operation>
+    </file>
+
+    <file path="admin/view/template/common/header.twig">       
+		<operation>
+            <search><![CDATA[<ul class="nav navbar-nav navbar-right">]]></search>
+            <add position="after"><![CDATA[
+	               <li><a href="https://www.tamatay.com/" target="blank"><span class="hidden-xs hidden-sm hidden-md">Tamatay Marketing Notification</a></li>
+                ]]></add>
+        </operation>
+    </file>
+
+	
+  <file path="catalog/controller/account/return.php">       
+		<operation>
+            <search><![CDATA[$this->response->redirect($this->url->link('account/return/success', '', true));]]></search>
+            <add position="before"><![CDATA[               
+                
+				//BO: to send sms
+                $this->load->model('setting/module');
+		
+                $sms_info = $this->model_setting_module->getModuleByCode('tamatay');
+				if(isset($sms_info) && !empty($sms_info) && isset($sms_info['status']) && !empty($sms_info['status'])){		
+						if ($this->customer->isLogged()) {
+							$customer_name = $this->customer->getFirstName() . ' ' . $this->customer->getLastName();							
+						} else {
+							$customer_name = $this->request->post['firstname'] . ' ' . $this->request->post['lastname'];
+						}			
+						$customer_id = (int)$this->customer->getId();
+						$store_name = html_entity_decode($this->config->get('config_name'), ENT_QUOTES, 'UTF-8');
+						$language_id       = $this->config->get('config_language_id');
+						$order_id = $this->request->post['order_id'];
+						$ordered_date = $this->request->post['date_ordered'];
+						$product = $this->request->post['product'];						
+						$model = $this->request->post['model'];						
+						
+						$original       = array("{#OrderID#}","{#Product#}","{#Model#}","{#OrderDate#}","{#SiteName#}","{#CustomerName#}");
+						$replace        = array($order_id, $product, $model, $ordered_date, $store_name, $customer_name);                
+
+						$this->load->model('extension/module/tamatay');
+						
+
+						$sms_data['username'] = $sms_info['api_username'];
+						$sms_data['password'] = $sms_info['api_password'];
+						$sms_data['senderid'] = $sms_info['api_senderid'];
+
+					   //admin sms
+						if(isset($sms_info['admin_return_product']) && !empty($sms_info['admin_return_product'])){
+							$message = str_replace($original, $replace, $sms_info['admin_return_product_text'][$language_id]);
+							$sms_data['to'] = $this->model_extension_module_tamatay->format_number($sms_info['owner_telephone']);
+							$sms_data['message'] = html_entity_decode($message, ENT_QUOTES, 'UTF-8');
+							$response = $this->model_extension_module_tamatay->send_sms($sms_data);
+
+							$dlr_data['customer_id'] = $customer_id;
+							$dlr_data['customer_name'] = $customer_name;
+							$dlr_data['mobile'] = $sms_data['to'];
+							$dlr_data['msg_id'] = isset($response[1]) ? $response[1] : null;
+							$dlr_data['status'] = $response[0];
+							$dlr_data['message'] = $sms_data['message'];
+							$this->model_extension_module_tamatay->insert_dlr($dlr_data);
+						}
+
+						//customer sms
+						if(isset($sms_info['cust_return_product']) && !empty($sms_info['cust_return_product'])){
+						$message = str_replace($original, $replace, $sms_info['cust_return_product_text'][$language_id]);
+						$sms_data['to'] = $this->model_extension_module_tamatay->format_number($this->request->post['telephone']);
+						$sms_data['message'] = html_entity_decode($message, ENT_QUOTES, 'UTF-8');
+						$response = $this->model_extension_module_tamatay->send_sms($sms_data);
+
+						$dlr_data['customer_id'] = $customer_id;
+						$dlr_data['customer_name'] = $customer_name;
+						$dlr_data['mobile'] = $sms_data['to'];
+						$dlr_data['msg_id'] = isset($response[1]) ? $response[1] : null;
+						$dlr_data['status'] = $response[0];
+						$dlr_data['message'] = $sms_data['message'];
+
+						$this->model_extension_module_tamatay->insert_dlr($dlr_data);
+						}		       
+					 
+				}//EO: to send sms
+                ]]></add>
+        </operation>
+    </file>
+    <file path="admin/controller/sale/return.php">       
+		<operation>
+            <search><![CDATA[$this->model_sale_return->addReturn($this->request->post);]]></search>
+            <add position="after"><![CDATA[    
+					//BO: to send sms
+					$this->load->model('setting/module');
+		
+					$sms_info = $this->model_setting_module->getModuleByCode('tamatay');
+					if(isset($sms_info) && !empty($sms_info) && isset($sms_info['status']) && !empty($sms_info['status'])
+					&& (isset($sms_info['cust_return_product']) && !empty($sms_info['cust_return_product']))){		
+						
+						$customer_name = $this->request->post['firstname'] . ' ' . $this->request->post['lastname'];
+						$customer_id = $this->request->post['customer_id'];
+						$store_name = html_entity_decode($this->config->get('config_name'), ENT_QUOTES, 'UTF-8');
+						$language_id       = $this->config->get('config_language_id');
+						$order_id = $this->request->post['order_id'];
+						$ordered_date = $this->request->post['date_ordered'];
+						$product = $this->request->post['product'];						
+						$model = $this->request->post['model'];						
+						
+						$original       = array("{OrderID}","{Product}","{Model}","{OrderDate}","{SiteName}","{CustomerName}");
+						$replace        = array($order_id, $product, $model, $ordered_date, $store_name, $customer_name);                
+
+						$this->load->model('extension/module/tamatay');
+						
+
+						$sms_data['username'] = $sms_info['api_username'];
+						$sms_data['password'] = $sms_info['api_password'];
+						$sms_data['senderid'] = $sms_info['api_senderid'];
+					   
+						//customer sms						
+						$message = str_replace($original, $replace, $sms_info['cust_return_product_text'][$language_id]);
+						$sms_data['to'] = $this->model_extension_module_tamatay->format_number($this->request->post['telephone']);
+						$sms_data['message'] = html_entity_decode($message, ENT_QUOTES, 'UTF-8');
+						$response = $this->model_extension_module_tamatay->send_sms($sms_data);
+
+						$dlr_data['customer_id'] = $customer_id;
+						$dlr_data['customer_name'] = $customer_name;
+						$dlr_data['mobile'] = $sms_data['to'];
+						$dlr_data['msg_id'] = isset($response[1]) ? $response[1] : null;
+						$dlr_data['status'] = $response[0];
+						$dlr_data['message'] = $sms_data['message'];
+
+						$this->model_extension_module_tamatay->insert_dlr($dlr_data);
+					 
+					}//EO: to send sms
+			 ]]></add>
+		</operation>
+		<operation>
+            <search><![CDATA[$this->model_sale_return->addReturnHistory($this->request->get['return_id'], $this->request->post['return_status_id'], $this->request->post['comment'], $this->request->post['notify']);]]></search>
+            <add position="before"><![CDATA[
+				$return_id = $this->request->get['return_id'];
+				$query = $this->db->query("SELECT return_status_id FROM `" . DB_PREFIX . "return` r WHERE r.return_id = '" . (int)$return_id . "'");
+				$old_data = $query->row;
+				$old_return_status_id = $old_data['return_status_id'];
+				
+			 ]]></add>
+		</operation>
+		<operation>
+            <search><![CDATA[$this->model_sale_return->addReturnHistory($this->request->get['return_id'], $this->request->post['return_status_id'], $this->request->post['comment'], $this->request->post['notify']);]]></search>
+            <add position="after"><![CDATA[    
+					//BO: to send sms
+					$this->load->model('setting/module');
+		
+					$sms_info = $this->model_setting_module->getModuleByCode('tamatay');
+					
+					if(isset($sms_info) && !empty($sms_info) && isset($sms_info['status']) && !empty($sms_info['status'])
+					&& (isset($sms_info['cust_return_product_status']) && !empty($sms_info['cust_return_product_status']))){		
+						//BO: if retuen status id not matched then send sms						
+						if($old_return_status_id != $this->request->post['return_status_id']){
+							$return_info = $this->model_sale_return->getReturn($return_id);
+							echo "<pre>";print_r($return_info);echo "</prE>";
+							$customer_id = $return_info['customer_id'];
+							$customer_name = $return_info['firstname'] . ' ' . $return_info['lastname'];							
+							$store_name = html_entity_decode($this->config->get('config_name'), ENT_QUOTES, 'UTF-8');
+							$language_id       = $this->config->get('config_language_id');
+							$order_id = $return_info['order_id'];
+							$status = $return_info['return_status'];
+							$ordered_date = $return_info['date_ordered'];
+							$product = $return_info['product'];						
+							$model = $return_info['model'];						
+							
+							$original       = array("{OrderID}","{Product}","{Model}","{Status}","{OrderDate}","{SiteName}","{CustomerName}");
+							$replace        = array($order_id, $product, $model, $status, $ordered_date, $store_name, $customer_name);                
+
+							$this->load->model('extension/module/tamatay');
+							
+
+							$sms_data['username'] = $sms_info['api_username'];
+							$sms_data['password'] = $sms_info['api_password'];
+							$sms_data['senderid'] = $sms_info['api_senderid'];
+						   
+							//customer sms						
+							$message = str_replace($original, $replace, $sms_info['cust_return_product_status_text'][$language_id]);
+							$sms_data['to'] = $this->model_extension_module_tamatay->format_number($return_info['telephone']);
+							$sms_data['message'] = html_entity_decode($message, ENT_QUOTES, 'UTF-8');
+							$response = $this->model_extension_module_tamatay->send_sms($sms_data);
+
+							$dlr_data['customer_id'] = $customer_id;
+							$dlr_data['customer_name'] = $customer_name;
+							$dlr_data['mobile'] = $sms_data['to'];
+							$dlr_data['msg_id'] = isset($response[1]) ? $response[1] : null;
+							$dlr_data['status'] = $response[0];
+							$dlr_data['message'] = $sms_data['message'];
+
+							$this->model_extension_module_tamatay->insert_dlr($dlr_data);
+						}//Eo: if retuen status id not matched then send sms
+					}//EO: to send sms
+			 ]]></add>
+		</operation>		
+	</file>
+</modification>
