@@ -14,7 +14,18 @@ How to install:
 3. Go to the Admin panel > Extensions > Modules and install 'Tamatay Whatsapp Notification'.
 4. Edit and enable it.
 
+Tamatay Whatsapp Notification messaging Integration will make you to add Whatsapp Notification features to your OpenCart store for free. Once configured customers will be notified with Whatsapp Notification when an Account is registered, an Order is placed, an Order status is updated, etc.
+
+Send Whatsapp Notification to customers on new orders and account registration
+Send Whatsapp Notification to admin on new orders and account registration
+Send Whatsapp Notifications to customers when order status is changed, like processed, shipped, etc.
+Send Whatsapp Notifications to managers when order status is changed, like: processed, shipped, etc.
+Configure custom templates for each notification
+
+
+
 For any queries:
 ================
 
 Please open a Support ticket at https://cws.coorgle.com
+
