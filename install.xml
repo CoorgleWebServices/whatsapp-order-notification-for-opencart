@@ -123,7 +123,6 @@ if (!is_numeric($this->request->post['telephone']) || (utf8_strlen($this->reques
 
 			        $sms_data['username'] = $sms_info['api_username'];
 			        $sms_data['password'] = $sms_info['api_password'];
-			        $sms_data['senderid'] = $sms_info['api_senderid'];
 
 					//admin sms
 					if(isset($sms_info['admin_register']) && !empty($sms_info['admin_register'])){
@@ -194,7 +193,6 @@ if (!is_numeric($this->request->post['telephone']) || (utf8_strlen($this->reques
 					
 						$sms_data['username'] = $sms_info['api_username'];
 						$sms_data['password'] = $sms_info['api_password'];
-						$sms_data['senderid'] = $sms_info['api_senderid'];
 
 						//admin sms
 						if(isset($sms_info['admin_place_order']) && !empty($sms_info['admin_place_order'])){
@@ -271,7 +269,6 @@ if (!is_numeric($this->request->post['telephone']) || (utf8_strlen($this->reques
 					
 						$sms_data['username'] = $sms_info['api_username'];
 						$sms_data['password'] = $sms_info['api_password'];
-						$sms_data['senderid'] = $sms_info['api_senderid'];					
 
 						//customer sms   
 						if(isset($sms_info['customer_place_order']) && !empty($sms_info['customer_place_order'])){             
@@ -344,7 +341,6 @@ if (!is_numeric($this->request->post['telephone']) || (utf8_strlen($this->reques
 					
 						$sms_data['username'] = $sms_info['api_username'];
 						$sms_data['password'] = $sms_info['api_password'];
-						$sms_data['senderid'] = $sms_info['api_senderid'];	
 
 						$telephone = $order_info['telephone'];
 						$message = str_replace($original, $replace, $sms_info['order_status_change_text'][$language_id]);
@@ -402,7 +398,6 @@ if (!is_numeric($this->request->post['telephone']) || (utf8_strlen($this->reques
 					
 						$sms_data['username'] = $sms_info['api_username'];
 						$sms_data['password'] = $sms_info['api_password'];
-						$sms_data['senderid'] = $sms_info['api_senderid'];					
 
 						//customer sms   						
 						$telephone = $order_info['telephone'];
@@ -492,7 +487,6 @@ if (!is_numeric($this->request->post['telephone']) || (utf8_strlen($this->reques
 
 						$sms_data['username'] = $sms_info['api_username'];
 						$sms_data['password'] = $sms_info['api_password'];
-						$sms_data['senderid'] = $sms_info['api_senderid'];
 
 					   //admin sms
 						if(isset($sms_info['admin_return_product']) && !empty($sms_info['admin_return_product'])){
@@ -559,7 +553,6 @@ if (!is_numeric($this->request->post['telephone']) || (utf8_strlen($this->reques
 
 						$sms_data['username'] = $sms_info['api_username'];
 						$sms_data['password'] = $sms_info['api_password'];
-						$sms_data['senderid'] = $sms_info['api_senderid'];
 					   
 						//customer sms						
 						$message = str_replace($original, $replace, $sms_info['cust_return_product_text'][$language_id]);
@@ -621,7 +614,6 @@ if (!is_numeric($this->request->post['telephone']) || (utf8_strlen($this->reques
 
 							$sms_data['username'] = $sms_info['api_username'];
 							$sms_data['password'] = $sms_info['api_password'];
-							$sms_data['senderid'] = $sms_info['api_senderid'];
 						   
 							//customer sms						
 							$message = str_replace($original, $replace, $sms_info['cust_return_product_status_text'][$language_id]);

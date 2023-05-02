@@ -4,11 +4,10 @@ class ModelExtensionModuleTamatay extends Model {
   	public function send_sms($data) {
 		$username = $data['username'];
 		$password = $data['password'];
-		$senderid = $data['senderid'];
 		$to = $data['to'];
 		$message = urlencode($data['message']);
 
-		$api = "https://app.tamatay.com/api/send.php?number=$to&type=text&message=$message&instance_id=$username&access_token=$password";
+		$api = "https://app.tamatay.com/api/send?number=$to&type=text&message=$message&instance_id=$username&access_token=$password";
 
 
 		$optional_opts = array(
